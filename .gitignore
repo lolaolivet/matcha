@@ -1,0 +1,9 @@
+.DS_Store
+node_modules
+.swp
+Vagrantfile
+.vagrant
+package-lock.json
+.oatts
+_data-folder
+credentials*

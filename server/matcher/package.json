@@ -1,0 +1,33 @@
+{
+  "name": "matcher",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "npm run test:integration",
+    "test:generate": "npm run test:integration:generate",
+    "test:integration": "npx mocha --recursive tests/integration",
+    "test:integration:generate": "npx oatts generate -s .doc/service-api.yml -w tests/.oatts",
+    "start": "node server.js",
+    "start:dev": "npx nodemon -L server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "cors": "^2.8.5",
+    "express": "^4.16.4",
+    "geolib": "^2.0.24",
+    "node-fetch": "^2.3.0",
+    "pg": "^7.8.1",
+    "pg-format": "^1.0.4"
+  },
+  "devDependencies": {
+    "standard": "^12.0.1",
+    "eslint": "^5.10.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-node": "^8.0.0",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0"
+  }
+}

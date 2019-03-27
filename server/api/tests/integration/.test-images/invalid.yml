@@ -1,0 +1,54 @@
+version: '3'
+
+services:
+  # app:
+  #   image: cezerin/cezerin
+  #   environment:
+  #     - DB_HOST=db
+  #     - DB_PORT=27017
+  #     - DB_NAME=shop
+  #     - DB_USER=$MONGO_DB_USER
+  #     - DB_PASS=$MONGO_DB_PWD
+  #   ports:
+  #     - 8000:80
+  #   volumes:
+  #     - .:/var/www/cezerin
+  #   depends_on:
+  #     - db
+  #   restart: always
+
+  app:
+    image: node:8
+    working_dir: /home/node/app
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./:/home/node/app
+      - ./dist:/var/www/html
+    expose:
+      - "8000"
+    ports:
+      - 8000:8000
+    command: "bash -c 'npm run start:docker'"
+    restart: always
+  
+  # db:
+  #   image: mongo
+  #   ports:
+  #     - 27017
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: $MONGO_DB_USER
+  #     MONGO_INITDB_ROOT_PASSWORD: $MONGO_DB_PWD
+  #   volumes:
+  #     - ./data:/data/db
+  #   restart: always
+
+  # adminer:
+  #   image: adminer
+  #   restart: always
+  #   depends_on:
+  #     - db
+  #   ports:
+  #     - 8081:8080
+  #   links:
+  #     - db

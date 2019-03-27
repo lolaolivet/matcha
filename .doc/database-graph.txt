@@ -1,0 +1,128 @@
+# "activity" tables describe moments in time
+# "settings" tables describe persistent and unique data (most of which is defined by the user)
+
+# visualise on https://app.quickdatabasediagrams.com/#/d/x6h67b
+
+# AUTH (+ AUTH ACTIVITY)
+
+login_log as login
+--
+session_id string PK
+user_id int FK >- auth.user_id
+created timestamp
+ip string
+
+logout_log as logout
+--
+session_id string PK FK >- login_log.session_id
+created timestamp
+ip string
+
+user_auth as auth
+--
+user_id int PK
+email string
+password string
+token_mail string
+token_pwd string
+confirmed bool
+
+# MATCHER (+ MATCHER ACTIVITY)
+
+display_log as display
+--
+user_id int FK >- auth.user_id
+viewed_id int FK >- auth.user_id
+created timestamp
+modified timestamp
+full bool
+
+block_log as block
+--
+user_id int FK >- auth.user_id
+blocked_id int FK >- auth.user_id
+created timestamp
+modified timestamp
+unblocked bool
+
+like_log
+--
+user_id int FK >- auth.user_id
+liked_id int FK >- auth.user_id
+created timestamp
+modified timestamp
+unliked bool
+
+match_log
+--
+user_1 int FK >- auth.user_id
+user_2 int FK >- auth.user_id
+created timestamp
+modified timestamp
+unmatched bool
+
+location_log
+--
+user_id int FK >- auth.user_id
+coordinates json
+created timestamp
+infos json
+
+
+# PROFILE
+
+user_info
+--
+user_id int PK FK >- auth.user_id
+firstname string
+lastname string
+login string
+dob timestamp
+gender string
+bio string
+created timestamp
+modified timestamp
+images json
+
+
+user_preferences
+--
+user_id int PK FK >- auth.user_id
+interested_by json
+age_max int
+age_min int
+list_of_interests json
+distance_max int
+
+interests
+--
+name string
+
+places
+--
+id int
+name string
+options json
+
+# ROUCOULE (LA MESSAGERIE)
+
+# •message
+# sender_id
+# receiver_id
+# message
+# message_id
+# next_part -- if the message is too long to fit in one row
+# time
+
+# \## Brouillon :
+# •category
+# •subcategory
+# suggestions
+# extended profile (user_auth + user_info)
+# default : sexual_orientation > localisation > interests > score
+# filter : interval of age + sexual_orientation + localisation + interests tags + interval of score
+# popularity
+# count : consultation
+# count : blocked
+# count : liked
+# count : unliked

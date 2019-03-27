@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:og="http://opengraphprotocol.org/schema/">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Matcha</title>
+    <meta property="og:site_name" content="Matcha"/>
+    <link rel="icon" type="image/png" sizes="32x32" href="/app/static/img/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/app/static/img/icons/favicon-16x16.png">
+    <!--[if IE]><link rel="shortcut icon" href="/app/static/img/icons/favicon.ico"><![endif]-->
+    <!-- Add to home screen for Android and modern mobile browsers -->
+    <!-- <link rel="manifest" href="/app/static/manifest.json"> -->
+    <meta name="theme-color" content="#4DBA87">
+
+    <!-- Add to home screen for Safari on iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Matcha">
+    <link rel="apple-touch-icon" href="/app/static/img/icons/apple-touch-icon-152x152.png">
+    <!-- Add to home screen for Windows -->
+    <meta name="msapplication-TileImage" content="/app/static/img/icons/msapplication-icon-144x144.png">
+    <meta name="msapplication-TileColor" content="#000000">
+    <% for (var chunk of webpack.chunks) {
+        for (var file of chunk.files) {
+          if (file.match(/\.(js|css)$/)) { %>
+    <link rel="<%= chunk.initial?'preload':'prefetch' %>" href="<%= htmlWebpackPlugin.files.publicPath + file %>" as="<%= file.match(/\.css$/)?'style':'script' %>"><% }}} %>
+    <link rel='stylesheet' type='text/css' href='/app/static/css/noscript-style.css'/>
+    <link rel='stylesheet' type='text/css' href='/app/static/css/pretty-checkbox.min.css'/>
+    <link rel='stylesheet' type='text/css' href='https://cdn.materialdesignicons.com/3.4.93/css/materialdesignicons.min.css'/>
+    <script src='/app/static/js/pretty-checkbox-vue.min.js'></script>
+  </head>
+  <body class='light'>
+    <noscript>
+      <p>Copyright (c) 2019 PAMITEAM  All Rights Reserved.</p>
+      <div class='noscript-main'>
+        <div id="noscript-main__logo">
+          <img class='logo__logo' src="/app/static/img/logos/heart.svg" alt="Make love not war">
+        </div>
+      </div>
+      <p>
+        <span>Bonjour,<br><br>Pour profiter du contenu complet de notre site, nous vous invitons à désactiver votre bloqueur de scripts.</span>
+      </p>
+    </noscript>
+    <div id="app"></div>
+  </body>
+</html>

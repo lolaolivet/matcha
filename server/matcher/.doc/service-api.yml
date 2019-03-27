@@ -1,0 +1,1318 @@
+swagger: '2.0'
+info:
+  version: '1.0'
+  title: "Matcha - Global API"
+host: matcha.pamicel.com
+basePath: /api
+schemes:
+- https
+consumes:
+- application/json
+produces:
+- application/json
+
+paths:
+
+  # AUTH
+
+  # register
+  /register:
+    post:
+      description: sign up
+      tags:
+        - auth
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              firstname:
+                type: string
+                $ref: '#/definitions/name'
+              lastname:
+                type: string
+                $ref: '#/definitions/name'
+              login:
+                type: string
+                pattern: (\w){1,15}$
+              email:
+                type: string
+              password:
+                type: string
+            required:
+              - login
+              - email
+              - password
+      responses:
+        200:
+          description: Ok
+          schema:
+            type: object
+            properties:
+              code:
+                type: number
+              userid:
+                type: number
+        400:
+        # code 4093 : Both email and login are taken
+        # code 4091 : Email already registered
+        # code 4092 : This login is taken
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+        409:
+          description: Conflict
+          schema:
+            $ref: "#/definitions/Error"
+
+  # login
+  /login:
+    post:
+      tags:
+        - auth
+      description: create new auth token
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              login:
+                type: string
+              email:
+                type: string
+              password:
+                type: string
+      responses:
+        200:
+          description: Ok
+          schema:
+            type: object
+            properties:
+              jwt:
+                $ref: "#/definitions/jwt"
+            required:
+              - jwt
+        400:
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+
+  # confirm
+  /confirm:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    # Confirm is a get for dev (so that I could
+    # send it in the email and just click) it
+    # might become a post with a body later on
+    get:
+      parameters:
+      - in: query
+        name: uid
+        description: user id
+        required: true
+        type: integer
+      - in: query
+        name: tid
+        description: email token id
+        required: true
+        type: string
+      tags:
+        - auth
+      description: confirm user
+      responses:
+        204:
+          description: Ok (No Content)
+        400:
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden (Invalid JWT)
+          schema:
+            $ref: "#/definitions/Error"
+
+  # refresh-token
+  /refresh-token:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    get:
+      tags:
+        - auth
+      description: refresh token
+      responses:
+        200:
+          description: Ok
+          schema:
+            type: object
+            properties:
+              jwt:
+                $ref: "#/definitions/jwt"
+            required:
+              - jwt
+        400:
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden (Invalid JWT)
+          schema:
+            $ref: "#/definitions/Error"
+
+  # delete user
+  /users/{userid}:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+      - name: userid
+        in: path
+        description: concerned user
+        required: true
+        type: integer
+    delete:
+      tags:
+        - auth
+      description: Delete user profile
+      responses:
+        204:
+          description: Success (Empty)
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+
+  # Profile
+
+  /users/{userid}/profile-summary:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+      - name: userid
+        in: path
+        description: concerned user
+        required: true
+        type: integer
+    get:
+      tags:
+        - user
+      description: Retrieve profile infos
+      responses:
+        200:
+          description: Successful Response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ProfileSummary'
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+
+  /users/{userid}/profile:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+      - name: userid
+        in: path
+        description: concerned user
+        required: true
+        type: integer
+    get:
+      tags:
+        - user
+      description: Retrieve profile infos
+      responses:
+        200:
+          description: Successful Response
+          schema:
+            $ref: '#/definitions/Profile'
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+    put:
+      tags:
+        - user
+      description: Modify profile infos
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ModificationRequest'
+      responses:
+        201:
+          description: Successful Action Response Full profile + summary of what was updated an what was not
+          schema:
+            $ref: '#/definitions/ModificationResponse'
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        # 400:
+        #   description: Bad Request
+        #   schema:
+        #     $ref: "#/definitions/Error"
+
+  /users/{userid}/img:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+      - name: userid
+        in: path
+        description: concerned user
+        required: true
+        type: integer
+    post:
+      tags:
+        - user
+      description: Add one image or more
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              newImages:
+                type: array
+                maxItems: 5
+                items:
+                  type: string
+                  # format: byte # doesn't work in apiary
+                  pattern: ^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$ # here to replace format: byte
+      responses:
+        201:
+          description: Created
+          schema:
+            type: array
+            maxItems: 5
+            items:
+              type: object
+              properties:
+                picture:
+                  $ref: '#/definitions/Picture'
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        400:
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+    get:
+      tags:
+        - user
+      description: Retrieve a user's pictures
+      responses:
+        200:
+          description: Successful Response
+          schema:
+            type: array
+            maxItems: 5
+            items:
+              $ref: '#/definitions/Picture'
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+    delete:
+      tags:
+        - user
+      description: Delete image(s)
+      parameters:
+        - name: ids
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              ids:
+                type: array
+                maxItems: 5
+                items:
+                  $ref: '#/definitions/id'
+      responses:
+        202:
+          description: Success (Empty)
+        403:
+          description: Forbidden (Invalid JWT)
+          schema:
+            $ref: "#/definitions/Error"
+        400:
+          description: "Bad request : no image to delete"
+        404:
+          description: User not Found
+          schema:
+            $ref: "#/definitions/Error"
+
+  /users/{userid}/stats:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+      - name: userid
+        in: path
+        description: concerned user
+        required: true
+        type: integer
+    get:
+      tags:
+        - user
+      description: Summary of everything the user has done
+      responses:
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              views:
+                type: array
+                items:
+                  type: number
+              likes:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    profile:
+                      $ref: '#/definitions/ProfileSummary'
+                    date:
+                      $ref: '#/definitions/timestamp'
+                    quantity:
+                      type: integer
+              matches:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    profile:
+                      $ref: '#/definitions/ProfileSummary'
+                    date:
+                      $ref: '#/definitions/timestamp'
+
+  # Matcher
+
+  /matcher/like:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    post:
+      tags:
+        - matcher
+      description: Like someone else
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              sender:
+                $ref: "#/definitions/id"
+              receiver:
+                $ref: "#/definitions/id"
+      responses:
+        204:
+          description: Ok
+        200:
+          description: Match
+          schema:
+            type: string
+        400:
+          # code 4001 : missing ids
+          # code 4002 : cannot like self (sad)
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Forbidden (Invalid JWT)
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Unauthorized (Restricted Action)
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          # code 4041 : Only sender fake
+          # code 4042 : Only receiver fake
+          # code 4043 : Both fake
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+
+  /matcher/unlike:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    put:
+      tags:
+        - matcher
+      description: unlike someone else
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              sender:
+                $ref: "#/definitions/id"
+              receiver:
+                $ref: "#/definitions/id"
+
+      responses:
+        204:
+          description: Ok
+        400:
+          # code 4001 : missing ids
+          # code 4002 : cannot unlike self (neat)
+          # code 4003 : cannot unlike someone you never liked or already unliked
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Forbidden (Invalid JWT)
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Unauthorized (Restricted Action)
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          # code 4041 : Only sender fake
+          # code 4042 : Only receiver fake
+          # code 4043 : Both fake
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+
+  /matcher/matches:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    get:
+      tags:
+        - matcher
+      description: get the list of people you matched with
+      parameters:
+        - name: uid
+          in: query
+          type: integer
+          description: Concerned user's id
+      responses:
+        400:
+          description: "Bad Request: missing parameter"
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Forbidden (Invalid JWT)
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Unauthorized (Restricted Action)
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        200:
+          description: Ok
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/ProfileSummary"
+
+  /matcher/suggestions:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    get:
+      tags:
+        - matcher
+      description: propose a list of user according to the preferences set
+      parameters:
+        - name: uid
+          in: query
+          description: Concerned user
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Ok
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/ProfileSummary"
+        400:
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Forbidden (Invalid JWT)
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Unauthorized (Restricted Action)
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+
+  /matcher/preferences:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    put:
+      tags:
+        - matcher
+      description: edit matcher's informations
+      parameters:
+        - name: preferences
+          in: body
+          description: preferences modifications
+          required: true
+          schema:
+            $ref: "#/definitions/preferences"
+      responses:
+        201:
+          description: Modified
+          schema:
+            type: object
+            properties:
+              list_of_interests:
+                type: object
+                properties:
+                  newValue:
+                    type: array
+                    items:
+                      type: string
+                  modified:
+                    type: boolean
+                  error:
+                    type: string
+              interested_by:
+                type: object
+                properties:
+                  newValue:
+                    type: string
+                    enum: [male, female, other]
+                  modified:
+                    type: boolean
+                  error:
+                    type: string
+              prefAge:
+                type: object
+                properties:
+                  newValue:
+                    type: object
+                    properties:
+                      age_min:
+                        type: integer
+                      age_max:
+                        type: integer
+                  modified:
+                    type: boolean
+                  error:
+                    type: string
+              distance_max:
+                type: object
+                properties:
+                  newValue:
+                    type: integer
+                  modified:
+                    type: boolean
+                  error:
+                    type: string
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Forbidden (Invalid JWT)
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Unauthorized (Restricted Action)
+          schema:
+            $ref: "#/definitions/Error"
+    get:
+      tags:
+        - matcher
+      description: get matcher preferences
+      responses:
+        200:
+          description: Ok
+        401:
+          description: Forbidden (Invalid JWT)
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Unauthorized (Restricted Action)
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+
+  /matcher/paw:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    get:
+      tags:
+        - matcher
+      description: get user latest paw
+      responses:
+        200:
+          description: Ok
+          schema:
+            $ref: '#/definitions/CurrentPAW'
+        401:
+          description: Unauthorized (Restricted Action)
+          schema:
+            $ref: "#/definitions/Error"
+
+  /matcher/paw/available:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    get:
+      tags:
+        - matcher
+      description: get paw
+      responses:
+        200:
+          description: Ok
+          schema:
+            $ref: '#/definitions/SetOfPAWs'
+        401:
+          description: Unauthorized (Restricted Action)
+          schema:
+            $ref: "#/definitions/Error"
+
+  /matcher/paw/choose-p:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    post:
+      tags:
+        - matcher
+      description: select PAW for user
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              id:
+                $ref: '#/definitions/id'
+      responses:
+        204:
+          description: Ok
+        401:
+          description: Unauthorized (Restricted Action)
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        400:
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+
+  /matcher/paw/choose-a:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    post:
+      tags:
+        - matcher
+      description: select PAW for user
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              id:
+                $ref: '#/definitions/id'
+      responses:
+        204:
+          description: Ok
+        401:
+          description: Unauthorized (Restricted Action)
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        400:
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+
+  /matcher/paw/choose-w:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    post:
+      tags:
+        - matcher
+      description: select PAW for user
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              id:
+                $ref: '#/definitions/id'
+      responses:
+        204:
+          description: Ok
+        401:
+          description: Unauthorized (Restricted Action)
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        400:
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+
+  /matcher/unblock:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    put:
+      tags:
+        - matcher
+      description: modify the block_log to annule it
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              uid:
+                $ref: "#/definitions/id"
+              unblock_uid:
+                $ref: "#/definitions/id"
+      responses:
+        400:
+          description: "Bad Request: missing parameter"
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Forbidden (Invalid JWT)
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Unauthorized (Restricted Action)
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        204:
+          description: Ok
+
+  /matcher/block:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    post:
+      tags:
+        - matcher
+      description: log every person you block
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              uid:
+                $ref: "#/definitions/id"
+              blocked_uid:
+                $ref: "#/definitions/id"
+      responses:
+        400:
+          description: "Bad Request: missing parameter"
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Forbidden (Invalid JWT)
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Unauthorized (Restricted Action)
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        204:
+          description: Ok
+
+  /matcher/blocks:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    get:
+      tags:
+        - matcher
+      description: get the list of people you blocked
+      parameters:
+        - name: uid1
+          in: query
+          type: integer
+          description: Concerned user's id
+      responses:
+        400:
+          description: "Bad Request: missing parameter"
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Forbidden (Invalid JWT)
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Unauthorized (Restricted Action)
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        200:
+          description: Ok
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/ProfileSummary"
+
+  /matcher/display:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    post:
+      tags:
+        - matcher
+      description: log every time you see a profile
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              uid:
+                $ref: "#/definitions/id"
+              viewed_uid:
+                $ref: "#/definitions/id"
+              full:
+                type: boolean
+      responses:
+        400:
+          description: "Bad Request: missing parameter"
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Forbidden (Invalid JWT)
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        204:
+          description: Ok
+
+  /matcher/displays:
+    parameters:
+      - name: Authorization
+        in: header
+        description: JSON Web Token
+        required: true
+        type: string
+    get:
+      tags:
+        - matcher
+      description: get the list of people who saw your profile
+      parameters:
+        - name: uid
+          in: query
+          type: integer
+          description: Concerned user's id
+      responses:
+        400:
+          description: "Bad Request: missing parameter"
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Forbidden (Invalid JWT)
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Unauthorized (Restricted Action)
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        200:
+          description: Ok
+          schema:
+            type: object
+            properties:
+              viewedBy:
+                type: array
+                items:
+                  $ref: "#/definitions/ProfileSummary"
+              viewed:
+                type: array
+                items:
+                  $ref: "#/definitions/ProfileSummary"
+
+# DEFINITIONS
+
+definitions:
+
+  jwt:
+    type: string
+    pattern: ^[A-Za-z0-9-_=]{10,30}\.[A-Za-z0-9-_=]{10,30}\.?[A-Za-z0-9-_.+/=]{10,30}$
+
+  id:
+    type: integer
+    minimum: 1
+
+  timestamp:
+    description: Epoch time in milliseconds
+    type: integer
+
+  name:
+    type: string
+    minLength: 1
+    maxLength: 50
+
+  preferences:
+    type: object
+    properties:
+      list_of_interests:
+        type: array
+        items:
+          type: string
+      interested_by:
+        type: object
+        properties:
+          male:
+            type: boolean
+          female:
+            type: boolean
+          other:
+            type: boolean
+          prefAge:
+            type: object
+            properties:
+              age_min:
+                type: integer
+              age_max:
+                type: integer
+          distance_max:
+            type: integer
+
+  Error:
+    type: object
+    properties:
+      # code:
+      #   type: string
+      message:
+        type: string
+    required:
+      # - code
+      - message
+
+  minimalProfile:
+    type: object
+    properties:
+      userid:
+        $ref: '#/definitions/id'
+      firstname:
+        $ref: '#/definitions/name'
+      lastname:
+        $ref: '#/definitions/name'
+      login:
+        type: string
+        pattern: (\w){1,15}$
+      dateCreated:
+        $ref: '#/definitions/timestamp'
+      birthDate:
+        $ref: '#/definitions/timestamp'
+      gender:
+        type: string
+        enum: [male, female, other]
+      bio:
+        type: string
+
+  Profile:
+    title: Profile
+    allOf:
+      - $ref: '#/definitions/minimalProfile'
+      - type: object
+        properties:
+          pictures:
+            type: array
+            items:
+              $ref: '#/definitions/Picture'
+            maxItems: 5
+    required:
+      - userid
+      - firstname
+      - lastname
+      - login
+      - dateCreated
+      - birthDate
+      - gender
+      - bio
+      - pictures
+
+  ProfileSummary:
+    type: object
+    properties:
+      userid:
+        $ref: '#/definitions/id'
+      login:
+        type: string
+        pattern: (\w){1,15}$
+      birthDate:
+        $ref: '#/definitions/timestamp'
+      gender:
+        type: string
+        enum: [male, female, other]
+      picture:
+        $ref: '#/definitions/Picture'
+      # online or last log
+
+  ModificationRequest:
+    title: Modification request
+    type: object
+    properties:
+      firstname:
+        type: string
+      lastname:
+        type: string
+      login:
+        type: string
+      birthDate:
+        $ref: '#/definitions/timestamp'
+      gender:
+        type: string
+        enum: [male, female, other]
+      bio:
+        type: string
+
+  ModificationResponse:
+    title: Modification response
+    type: object
+    properties:
+      profile:
+        $ref: '#/definitions/Profile'
+      changes:
+        type: object
+        properties:
+          firstname:
+            $ref: '#/definitions/ModificationObject'
+          lastname:
+            $ref: '#/definitions/ModificationObject'
+          login:
+            $ref: '#/definitions/ModificationObject'
+          birth_date:
+            $ref: '#/definitions/ModificationObject'
+          gender:
+            $ref: '#/definitions/ModificationObject'
+          bio:
+            $ref: '#/definitions/ModificationObject'
+    required:
+      - profile
+      - changes
+
+  ModificationObject:
+    title: Description of a modification made by the server after request by the client
+    type: object
+    properties:
+      date:
+        $ref: '#/definitions/timestamp'
+      done:
+        description: 'Has the modification happened'
+        type: boolean
+      issue:
+        description: 'description of the potential problem'
+        type: string
+    required:
+      - date
+      - done
+
+  Picture:
+    title: Picture
+    type: object
+    properties:
+      id:
+        $ref: '#/definitions/id'
+      url:
+        type: string
+        pattern: ^\/static\/[0-9a-zA-Z]{6,}\.(jpg|jpeg|gif|JPG|png|PNG)$
+      dateAdded:
+        $ref: '#/definitions/timestamp'
+      ownerID:
+        $ref: '#/definitions/id'
+    required:
+      - id
+      - url
+      - dateAdded
+      - ownerID
+
+  SetOfPAWs:
+    title: Schema of the set of the PAWs + question
+    type: object
+    properties:
+      place:
+        type: object
+        properties:
+          question:
+            type: string
+          choices:
+            $ref: "#/definitions/ArrayOfPAWDescriptions"
+      attitude:
+        type: object
+        properties:
+          question:
+            type: string
+          choices:
+            $ref: "#/definitions/ArrayOfPAWDescriptions"
+      weapon:
+        type: object
+        properties:
+          question:
+            type: string
+          choices:
+            $ref: "#/definitions/ArrayOfPAWDescriptions"
+
+  CurrentPAW:
+    title: A user's current PAWs
+    type: object
+    properties:
+      place:
+        $ref: "#/definitions/PAWDescription"
+      attitude:
+        $ref: "#/definitions/PAWDescription"
+      weapon:
+        $ref: "#/definitions/PAWDescription"
+
+  ArrayOfPAWDescriptions:
+    type: array
+    items:
+      $ref: "#/definitions/PAWDescription"
+
+  PAWDescription:
+    type: object
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      darkName:
+        type: string

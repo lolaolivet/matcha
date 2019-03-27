@@ -1,0 +1,115 @@
+version: '3'
+
+services:
+
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: example
+    volumes:
+      #
+      # NB
+      #   the following line is commented because
+      #   data is not persistent in dev mode
+      # - ./server/_data-folder:/var/lib/postgresql/data
+      - ./server/db:/docker-entrypoint-initdb.d/
+    ports:
+      - 5432:5432
+    restart: always
+
+  client:
+    image: pamicel/node10:nodemon
+    working_dir: /home/node/app
+    volumes:
+      - ./server/serve-client:/home/node/app
+      - ./client/landing/dist:/home/landing
+      - ./client/main-app/dist:/home/main-app
+    environment:
+      - MAIN_PORT=3000
+      - MATCHA_SERVER_URL=$MATCHA_SERVER_URL
+    command: "bash -c 'npm install; npm run start:dev'"
+    expose:
+      - "3000"
+    restart: always
+
+  api:
+    image: pamicel/node10:nodemon
+    working_dir: /home/node/app
+    volumes:
+      - ./server/api:/home/node/app
+      - ./server/_assets-folder:/home/node/app/assets
+      - ./server/_common:/home/node/app/common
+    environment:
+      - MAIN_PORT=9000
+      - MATCHA_SERVER_URL=$MATCHA_SERVER_URL
+      - MATCHA_ETHER_ADDRESS=$MATCHA_ETHER_ADDRESS
+      - MATCHA_ETHER_PWD=$MATCHA_ETHER_PWD
+      - MATCHA_PG_PWD=$MATCHA_PG_PWD
+      - MATCHA_SECRET=$MATCHA_SECRET
+      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+      - AWS_SENDER=$AWS_SENDER
+    command: "bash -c 'npm install; npm run start:dev'"
+    ports:
+      - 9000:9000
+    restart: always
+
+  db-admin:
+    image: adminer
+    depends_on:
+      - db
+    ports:
+      - 9001:8080
+    links:
+      - db
+    restart: always
+
+  dev-admin:
+    image: pamicel/node10:nodemon
+    working_dir: /home/node/app
+    volumes:
+      - ./server/.dev-admin:/home/node/app
+      - ./server/_assets-folder:/home/node/app/assets
+      - ./server/_common:/home/node/app/common
+      - ./server/api:/home/node/app/.access/api
+    environment:
+      - MAIN_PORT=9002
+      - MATCHA_PG_PWD=$MATCHA_PG_PWD
+      - MATCHA_SECRET=$MATCHA_SECRET
+    command: "bash -c 'npm --no-bin-links install; npm run start:dev'"
+    ports:
+      - 9002:9002
+    restart: always
+
+  chat:
+    image: pamicel/node10:nodemon
+    working_dir: /home/node/app
+    volumes:
+      - ./server/chat:/home/node/app
+      - ./server/_common:/home/node/app/common
+    environment:
+      - DOCKER_PORT=9003
+      - MATCHA_PG_PWD=$MATCHA_PG_PWD
+      - MATCHA_SECRET=$MATCHA_SECRET
+      - MATCHA_SERVER_URL=$MATCHA_SERVER_URL
+    command: "bash -c 'npm --no-bin-links install; npm run start:dev'"
+    ports:
+      - 9003:9003
+    restart: always
+
+  matcher:
+    image: pamicel/node10:nodemon
+    working_dir: /home/node/app
+    volumes:
+      - ./server/matcher:/home/node/app
+      - ./server/_assets-folder:/home/node/app/assets
+      - ./server/_common:/home/node/app/common
+    environment:
+      - MAIN_PORT=9004
+      - MATCHA_PG_PWD=$MATCHA_PG_PWD
+      - MATCHA_SECRET=$MATCHA_SECRET
+      - MATCHA_SERVER_URL=$MATCHA_SERVER_URL
+    command: "bash -c 'npm --no-bin-links install; npm run start:dev'"
+    ports:
+      - 9004:9004
+    restart: always

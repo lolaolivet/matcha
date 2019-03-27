@@ -1,0 +1,378 @@
+swagger: '2.0'
+info:
+  version: '1.0'
+  title: "Matcha - Profile API"
+# host: matcha.pamicel.com
+host: localhost:8000
+# basePath: /profile
+schemes:
+- https
+consumes:
+- application/json
+produces:
+- application/json
+
+paths:
+
+  /:
+    post:
+      description: Create user profile
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/MinimalProfile'
+      responses:
+        201:
+          description: Created
+          schema:
+            $ref: '#/definitions/Profile'
+        409:
+          description: Conflict
+          schema:
+            $ref: "#/definitions/Error"
+        400:
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+
+  /{userid}:
+    delete:
+      description: Delete user profile
+      parameters:
+        - in: path
+          name: userid
+          type: integer
+          required: true
+          description: Numeric ID of the user to get
+      responses:
+        202:
+          description: Success (Empty)
+        204:
+          description: Recieved (will be enacted later)
+        201:
+          description: Success (Verbose)
+          schema:
+            type: string
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+
+  /{userid}/info:
+    parameters:
+      - in: path
+        name: userid
+        type: integer
+        required: true
+        description: Numeric ID of the user to get
+    get:
+      description: Retrieve profile infos
+      responses:
+        200:
+          description: Successful Response
+          schema:
+            $ref: '#/definitions/Profile'
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+    put:
+      description: Modify profile infos
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ModificationRequest'
+      responses:
+        201:
+          description: Successful Action Response Full profile + summary of what was updated an what was not
+          schema:
+            $ref: '#/definitions/ModificationResponse'
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        400:
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+
+  /{userid}/img:
+    parameters:
+      - name: userid
+        in: path
+        description: concerned user
+        required: true
+        type: integer
+    post:
+      description: Add one image or more
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              newImages:
+                type: array
+                maxItems: 5
+                items:
+                  type: string
+                  # format: byte # doesn't work in apiary
+                  pattern: ^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$ # here to replace format: byte
+      responses:
+        201:
+          description: Created
+          schema:
+            type: object
+            properties:
+              picture:
+                $ref: '#/definitions/Picture'
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        400:
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+    put:
+      description: Replace existing images by others
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: array
+            maxItems: 5
+            items:
+              type: object
+              properties:
+                newImages:
+                  type: string
+                  # format: byte # doesn't work in apiary
+                  pattern: ^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$ # here to replace format: byte
+                replace:
+                  $ref: '#/definitions/id'
+              required:
+                - newImages
+                - replace
+
+      responses:
+        201:
+          description: Created
+          schema:
+            type: object
+            properties:
+              picture:
+                $ref: '#/definitions/Picture'
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        400:
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: "Unprocessable Entity : an image id does not exist or the data of a new image is unprocessable."
+    get:
+      description: Retrieve a user's pictures
+      responses:
+        200:
+          description: Successful Response
+          schema:
+            type: object
+            properties:
+              userid:
+                type: integer
+                minimum: 1
+              pictures:
+                type: array
+                maxItems: 5
+                items:
+                  $ref: '#/definitions/Picture'
+            required:
+              - userid
+              - pictures
+        404:
+          description: User Not Found
+          schema:
+            $ref: "#/definitions/Error"
+    delete:
+      description: Delete image(s)
+      responses:
+        202:
+          description: Success (Empty)
+        204:
+          description: Recieved (will be enacted later)
+        201:
+          description: Success (Verbose)
+          schema:
+            type: string
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: "Unprocessable Entity : an image id does not exist or the data of a new image is unprocessable."
+
+# DEFINITIONS
+
+definitions:
+
+  id:
+    type: integer
+    minimum: 1
+
+  timestamp:
+    description: Epoch time in milliseconds
+    type: integer
+    minimum: 154306835 # absurd value for the example
+
+  name:
+    type: string
+    pattern: ^[a-zA-Z]{1}([',. -][a-zA-Z]|[a-zA-Z]){0,35}$
+    
+  MinimalProfile:
+    type: object
+    properties:
+      userid:
+        $ref: '#/definitions/id'
+      firstname:
+        $ref: '#/definitions/name'
+      lastname:
+        $ref: '#/definitions/name'
+      login:
+        type: string
+        pattern: (\w){1,15}$
+      dateCreated:
+        $ref: '#/definitions/timestamp'
+      birthDate:
+        $ref: '#/definitions/timestamp'
+      gender:
+        type: string
+        enum: [male, female, other]
+      bio:
+        type: string
+    required:
+      - userid
+
+
+
+  Error:
+    type: object
+    properties:
+      # code:
+      #   type: string
+      message:
+        type: string
+    required:
+      # - code
+      - message
+
+  Profile:
+    title: Profile
+    allOf:
+      - $ref: '#/definitions/MinimalProfile'
+      - type: object
+        properties:
+          pictures:
+            type: array
+            items:
+              $ref: '#/definitions/Picture'
+            maxItems: 5
+    required:
+      - userid
+      - firstname
+      - lastname
+      - login
+      - dateCreated
+      - birthDate
+      - gender
+      - bio
+      - pictures
+      
+  ModificationRequest:
+    title: Modification request
+    type: object
+    properties:
+      firstname:
+        type: string
+      lastname:
+        type: string
+      login:
+        type: string
+      birthDate:
+        $ref: '#/definitions/timestamp'
+      gender:
+        type: string
+        enum: [male, female, other]
+      bio:
+        type: string
+
+  ModificationResponse:
+    title: Modification response
+    type: object
+    properties:
+      profile:
+        $ref: '#/definitions/Profile'
+      changes:
+        type: object
+        properties:
+          firstname:
+            $ref: '#/definitions/ModificationObject'
+          lastname:
+            $ref: '#/definitions/ModificationObject'
+          login:
+            $ref: '#/definitions/ModificationObject'
+          birth_date:
+            $ref: '#/definitions/ModificationObject'
+          gender:
+            $ref: '#/definitions/ModificationObject'
+          bio:
+            $ref: '#/definitions/ModificationObject'
+    required:
+      - profile
+      - changes
+
+  ModificationObject:
+    title: Description of a modification made by the server after request by the client
+    type: object
+    properties:
+      date:
+        # When the server made the modification.
+        $ref: '#/definitions/timestamp'
+      done:
+        description: 'Has the modification happened'
+        type: boolean
+      issue:
+        description: 'description of the potential problem'
+        type: string
+    required:
+      - date
+      - done
+
+  Picture:
+    title: Picture
+    type: object
+    properties:
+      id:
+        $ref: '#/definitions/id'
+      path:
+        type: string
+        pattern: ^\/static\/[0-9a-zA-Z]{6,}\.(jpg|jpeg|gif|JPG|png|PNG)$
+      dateAdded:
+        $ref: '#/definitions/timestamp'
+      ownerID:
+        $ref: '#/definitions/id'
+    required:
+      - id
+      - path
+      - dateAdded
+      - ownerID
+
+
